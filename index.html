@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>색깔 믹서</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #fafafa;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    h1 { font-size: 1.8rem; margin-bottom: 6px; color: #222; }
+    p.subtitle { font-size: 0.9rem; color: #888; margin-bottom: 36px; }
+
+    .slots {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 36px;
+    }
+
+    .plus {
+      font-size: 1.8rem;
+      color: #ccc;
+      align-self: center;
+      margin-top: -10px;
+    }
+
+    .slot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 120px;
+    }
+
+    .slot-label { font-size: 0.85rem; font-weight: 700; color: #555; }
+
+    .slot-circle {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: #e8e8e8;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: background-color 0.25s;
+      border: 3px solid #fff;
+      outline: 2px solid #ddd;
+    }
+
+    .slot-name { font-size: 1rem; font-weight: 700; color: #333; min-height: 1.4em; }
+
+    .reset-btn {
+      font-size: 0.75rem;
+      color: #aaa;
+      background: none;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      padding: 3px 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .reset-btn:hover { color: #e55; border-color: #e55; }
+
+    /* 팔레트 */
+    .palette-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      max-width: 480px;
+    }
+
+    .swatch-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 22px;
+    }
+
+    .swatch {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid transparent;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .swatch:hover { transform: scale(1.12); }
+    .swatch.selected { border-color: #333; transform: scale(1.08); }
+
+    .swatch-label {
+      margin-top: 4px;
+      font-size: 0.65rem;
+      color: #555;
+      white-space: nowrap;
+    }
+
+    /* 결과 */
+    .divider {
+      width: 60px; height: 3px;
+      background: #e0e0e0; border-radius: 2px;
+      margin: 8px auto 32px;
+    }
+
+    .result-section {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .result-circle {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: #e8e8e8;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+      transition: background-color 0.3s;
+      border: 4px solid #fff;
+      outline: 2px solid #ddd;
+      flex-shrink: 0;
+    }
+
+    .result-info { text-align: left; }
+
+    .result-name {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #111;
+      margin-bottom: 6px;
+    }
+
+    .result-desc {
+      font-size: 0.88rem;
+      color: #666;
+      margin-bottom: 14px;
+    }
+
+    .result-example {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #f2f2f2;
+      border-radius: 18px;
+      padding: 14px 20px;
+    }
+
+    .example-emoji { font-size: 3.2rem; line-height: 1; }
+
+    .example-text { font-size: 1rem; color: #444; line-height: 1.6; }
+    .example-text strong { display: block; font-size: 1.2rem; color: #222; }
+
+    .reset-all-btn {
+      margin-top: 28px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      background: #555;
+      border: none;
+      border-radius: 24px;
+      padding: 10px 28px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .reset-all-btn:hover { background: #e55; }
+  </style>
+</head>
+<body>
+
+  <h1>🎨 색깔 믹서</h1>
+  <p class="subtitle">색을 골라보세요 — 2~3개를 섞으면 어떤 색이 될까요?</p>
+
+  <div class="slots">
+    <div class="slot">
+      <span class="slot-label">색상 1</span>
+      <div class="slot-circle" id="circle0"></div>
+      <span class="slot-name" id="name0">?</span>
+      <button class="reset-btn" onclick="resetSlot(0)">초기화</button>
+    </div>
+    <div class="plus">+</div>
+    <div class="slot">
+      <span class="slot-label">색상 2</span>
+      <div class="slot-circle" id="circle1"></div>
+      <span class="slot-name" id="name1">?</span>
+      <button class="reset-btn" onclick="resetSlot(1)">초기화</button>
+    </div>
+    <div class="plus">+</div>
+    <div class="slot">
+      <span class="slot-label">색상 3</span>
+      <div class="slot-circle" id="circle2"></div>
+      <span class="slot-name" id="name2">?</span>
+      <button class="reset-btn" onclick="resetSlot(2)">초기화</button>
+    </div>
+  </div>
+
+  <div class="palette-row" id="palette"></div>
+
+  <div class="divider"></div>
+
+  <div class="result-section">
+    <div class="result-circle" id="resultCircle"></div>
+    <div class="result-info">
+      <div class="result-name" id="resultName">색을 2개 이상 골라보세요</div>
+      <div class="result-desc" id="resultDesc"></div>
+      <div class="result-example" id="resultExample" style="display:none;">
+        <span class="example-emoji" id="exampleEmoji"></span>
+        <span class="example-text">
+          <strong id="exampleName"></strong>
+          <span id="exampleDesc"></span>
+        </span>
+      </div>
+    </div>
+  </div>
+  <button class="reset-all-btn" onclick="resetAll()">전체 초기화</button>
+
+  <script>
+    const COLORS = [
+      { name: '빨강',   hex: '#FF3B30', r: 255, g: 59,  b: 48  },
+      { name: '진빨강', hex: '#C0392B', r: 192, g: 57,  b: 43  },
+      { name: '자주',   hex: '#8B1A2F', r: 139, g: 26,  b: 47  },
+      { name: '산호',   hex: '#FF6B6B', r: 255, g: 107, b: 107 },
+      { name: '주황',   hex: '#FF9500', r: 255, g: 149, b: 0   },
+      { name: '살구',   hex: '#FFAE80', r: 255, g: 174, b: 128 },
+      { name: '노랑',   hex: '#FFCC00', r: 255, g: 204, b: 0   },
+      { name: '황금',   hex: '#D4A017', r: 212, g: 160, b: 23  },
+      { name: '황토',   hex: '#C68B3A', r: 198, g: 139, b: 58  },
+      { name: '연두',   hex: '#A8E063', r: 168, g: 224, b: 99  },
+      { name: '초록',   hex: '#34C759', r: 52,  g: 199, b: 89  },
+      { name: '진초록', hex: '#1A7A3C', r: 26,  g: 122, b: 60  },
+      { name: '올리브', hex: '#7D8B2E', r: 125, g: 139, b: 46  },
+      { name: '민트',   hex: '#63D4B0', r: 99,  g: 212, b: 176 },
+      { name: '청록',   hex: '#00C7BE', r: 0,   g: 199, b: 190 },
+      { name: '하늘',   hex: '#5AC8FA', r: 90,  g: 200, b: 250 },
+      { name: '파랑',   hex: '#007AFF', r: 0,   g: 122, b: 255 },
+      { name: '진파랑', hex: '#0A3D8F', r: 10,  g: 61,  b: 143 },
+      { name: '남색',   hex: '#1B2A6B', r: 27,  g: 42,  b: 107 },
+      { name: '보라',   hex: '#AF52DE', r: 175, g: 82,  b: 222 },
+      { name: '진보라', hex: '#6C3483', r: 108, g: 52,  b: 131 },
+      { name: '라벤더', hex: '#C9A0E8', r: 201, g: 160, b: 232 },
+      { name: '분홍',   hex: '#FF6EB4', r: 255, g: 110, b: 180 },
+      { name: '연분홍', hex: '#FFB3CE', r: 255, g: 179, b: 206 },
+      { name: '갈색',   hex: '#A2845E', r: 162, g: 132, b: 94  },
+      { name: '진갈색', hex: '#6B3A2A', r: 107, g: 58,  b: 42  },
+      { name: '베이지', hex: '#E8D5B0', r: 232, g: 213, b: 176 },
+      { name: '연회색', hex: '#C7C7CC', r: 199, g: 199, b: 204 },
+      { name: '회색',   hex: '#8E8E93', r: 142, g: 142, b: 147 },
+      { name: '흰색',   hex: '#F5F5F5', r: 245, g: 245, b: 245 },
+      { name: '검정',   hex: '#1C1C1E', r: 28,  g: 28,  b: 30  },
+    ];
+
+    const selected = [null, null, null];
+
+    const palette = document.getElementById('palette');
+    COLORS.forEach((c, ci) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'swatch-wrap';
+      const sw = document.createElement('div');
+      sw.className = 'swatch';
+      sw.id = 'swatch-' + ci;
+      sw.style.background = c.hex;
+      sw.title = c.name;
+      sw.onclick = () => pickColor(ci);
+      const lbl = document.createElement('span');
+      lbl.className = 'swatch-label';
+      lbl.textContent = c.name;
+      wrap.appendChild(sw);
+      wrap.appendChild(lbl);
+      palette.appendChild(wrap);
+    });
+
+    function pickColor(colorIdx) {
+      const free = selected.indexOf(null);
+      if (free === -1) return;
+      if (selected.includes(colorIdx)) return;
+      selected[free] = colorIdx;
+      updateSlot(free);
+      updateSwatch(colorIdx);
+      updateResult();
+    }
+
+    function resetSlot(slotIdx) {
+      const colorIdx = selected[slotIdx];
+      selected[slotIdx] = null;
+      updateSlot(slotIdx);
+      if (colorIdx !== null) updateSwatch(colorIdx);
+      updateResult();
+    }
+
+    function updateSlot(slotIdx) {
+      const colorIdx = selected[slotIdx];
+      const circle = document.getElementById('circle' + slotIdx);
+      const nameEl = document.getElementById('name' + slotIdx);
+      if (colorIdx === null) {
+        circle.style.background = '#e8e8e8';
+        nameEl.textContent = '?';
+      } else {
+        circle.style.background = COLORS[colorIdx].hex;
+        nameEl.textContent = COLORS[colorIdx].name;
+      }
+    }
+
+    function updateSwatch(colorIdx) {
+      const sw = document.getElementById('swatch-' + colorIdx);
+      sw.classList.toggle('selected', selected.includes(colorIdx));
+    }
+
+    function rgbToHex(r, g, b) {
+      return '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+    }
+
+    function rgbToHsl(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h = 0, s = 0, l = (max + min) / 2;
+      if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+          case g: h = ((b - r) / d + 2) / 6; break;
+          case b: h = ((r - g) / d + 4) / 6; break;
+        }
+      }
+      return { h: h * 360, s: s * 100, l: l * 100 };
+    }
+
+    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function getColorInfo(r, g, b) {
+      const { h, s, l } = rgbToHsl(r, g, b);
+
+      if (l < 12) {
+        const ex = pick([
+          { emoji: '🐦‍⬛', exName: '까마귀',   exDesc: '새까만 깃털을 가진 새예요' },
+          { emoji: '🐾',   exName: '흑표범',   exDesc: '어둠 속에 숨는 검은 고양잇과 동물이에요' },
+          { emoji: '🌑',   exName: '그믐달',   exDesc: '빛이 거의 없는 칠흑 같은 밤이에요' },
+          { emoji: '🦇',   exName: '박쥐',     exDesc: '밤에 날아다니는 검은 동물이에요' },
+        ]);
+        return { name: '거의 검정', desc: '아주 어두운 색이에요', ...ex };
+      }
+      if (l > 88) {
+        const ex = pick([
+          { emoji: '🐇', exName: '흰 토끼',   exDesc: '눈처럼 하얀 털을 가졌어요' },
+          { emoji: '🕊️', exName: '비둘기',   exDesc: '순백의 날개를 가진 새예요' },
+          { emoji: '❄️', exName: '눈송이',    exDesc: '하늘에서 내리는 새하얀 눈이에요' },
+          { emoji: '🐑', exName: '양',        exDesc: '하얀 털로 뒤덮인 포근한 동물이에요' },
+        ]);
+        return { name: '거의 흰색', desc: '아주 밝고 맑은 색이에요', ...ex };
+      }
+      if (s < 12) {
+        const ex = pick([
+          { emoji: '🐘', exName: '코끼리',   exDesc: '회색빛 피부를 가진 동물이에요' },
+          { emoji: '🦈', exName: '상어',     exDesc: '회색빛 몸통을 가진 바다 동물이에요' },
+          { emoji: '🪨', exName: '돌멩이',   exDesc: '길가에서 흔히 볼 수 있는 회색 돌이에요' },
+          { emoji: '🐺', exName: '늑대',     exDesc: '회색빛 털을 가진 동물이에요' },
+        ]);
+        return { name: '회색', desc: '무채색 계열이에요', ...ex };
+      }
+
+      const dark = l < 35;
+      const pale = s < 38 || l > 70;
+
+      let base, desc, candidates;
+
+      if (h < 15 || h >= 345) {
+        base = '빨강'; desc = '빨간 계열이에요';
+        if (dark) candidates = [
+          { emoji: '🍷', exName: '포도주',   exDesc: '짙은 붉은빛을 띠는 음료예요' },
+          { emoji: '🌹', exName: '빨간 장미', exDesc: '깊고 짙은 붉은빛 꽃이에요' },
+          { emoji: '🦞', exName: '랍스터',   exDesc: '진한 붉은빛을 띠는 바닷가재예요' },
+        ];
+        else if (pale) candidates = [
+          { emoji: '🍑', exName: '복숭아',   exDesc: '연붉은 빛깔의 달콤한 과일이에요' },
+          { emoji: '🌷', exName: '튤립',     exDesc: '연분홍빛이 도는 봄꽃이에요' },
+          { emoji: '🦩', exName: '홍학',     exDesc: '연한 분홍빛 깃털을 가진 새예요' },
+        ];
+        else candidates = [
+          { emoji: '🍎', exName: '사과',     exDesc: '새빨간 껍질을 가진 과일이에요' },
+          { emoji: '🍅', exName: '토마토',   exDesc: '새빨갛게 익은 채소예요' },
+          { emoji: '🌺', exName: '히비스커스', exDesc: '선명한 빨간 꽃잎을 가진 꽃이에요' },
+          { emoji: '🐞', exName: '무당벌레', exDesc: '빨간 등딱지에 검은 점이 있는 곤충이에요' },
+        ];
+      } else if (h < 40) {
+        base = '주황'; desc = '주황 계열이에요';
+        if (dark) candidates = [
+          { emoji: '🦊', exName: '여우',     exDesc: '짙은 주황빛 털을 가진 동물이에요' },
+          { emoji: '🍂', exName: '단풍잎',   exDesc: '가을에 물드는 짙은 주황빛 잎이에요' },
+          { emoji: '🦁', exName: '사자',     exDesc: '황갈색 갈기를 가진 동물이에요' },
+        ];
+        else if (pale) candidates = [
+          { emoji: '🍑', exName: '복숭아',   exDesc: '연한 살구빛 과일이에요' },
+          { emoji: '🌅', exName: '노을',     exDesc: '하늘을 연주황으로 물들이는 저녁 노을이에요' },
+          { emoji: '🐱', exName: '고양이',   exDesc: '살구빛 털을 가진 귀여운 동물이에요' },
+        ];
+        else candidates = [
+          { emoji: '🍊', exName: '귤',       exDesc: '주황빛이 선명한 새콤달콤한 과일이에요' },
+          { emoji: '🎃', exName: '호박',     exDesc: '주황빛의 크고 둥근 채소예요' },
+          { emoji: '🦧', exName: '오랑우탄', exDesc: '주황빛 털로 덮인 동물이에요' },
+          { emoji: '🌄', exName: '일출',     exDesc: '주황빛으로 물드는 새벽 하늘이에요' },
+        ];
+      } else if (h < 70) {
+        base = '노랑'; desc = '노란 계열이에요';
+        if (dark) candidates = [
+          { emoji: '🌻', exName: '해바라기', exDesc: '진한 황금빛 꽃이에요' },
+          { emoji: '🍯', exName: '꿀',       exDesc: '황금빛이 도는 달콤한 꿀이에요' },
+          { emoji: '🌾', exName: '밀밭',     exDesc: '황금빛으로 물든 가을 밀밭이에요' },
+        ];
+        else if (pale) candidates = [
+          { emoji: '🌼', exName: '민들레',   exDesc: '연노란 꽃잎을 가진 꽃이에요' },
+          { emoji: '🐣', exName: '병아리',   exDesc: '연노란 솜털을 가진 아기 닭이에요' },
+          { emoji: '🧀', exName: '치즈',     exDesc: '연한 노란빛을 띠는 음식이에요' },
+        ];
+        else candidates = [
+          { emoji: '🍋', exName: '레몬',     exDesc: '새노란 빛깔의 새콤한 과일이에요' },
+          { emoji: '🌕', exName: '보름달',   exDesc: '밤하늘에 빛나는 노란 달이에요' },
+          { emoji: '🐝', exName: '꿀벌',     exDesc: '노란 줄무늬를 가진 곤충이에요' },
+          { emoji: '🌟', exName: '별',       exDesc: '밤하늘에 빛나는 노란 별이에요' },
+        ];
+      } else if (h < 80) {
+        base = '황록'; desc = '황록 계열이에요';
+        candidates = [
+          { emoji: '🌿', exName: '새싹',     exDesc: '막 돋아난 연두빛 새싹이에요' },
+          { emoji: '🍈', exName: '멜론',     exDesc: '황록빛 껍질을 가진 달콤한 과일이에요' },
+          { emoji: '🐛', exName: '애벌레',   exDesc: '연두빛 몸통을 가진 곤충 유충이에요' },
+          { emoji: '🥒', exName: '오이',     exDesc: '황록빛이 도는 시원한 채소예요' },
+        ];
+      } else if (h < 160) {
+        base = '초록'; desc = '초록 계열이에요';
+        if (dark) candidates = [
+          { emoji: '🌲', exName: '소나무',   exDesc: '진초록 잎이 1년 내내 푸른 나무예요' },
+          { emoji: '🐊', exName: '악어',     exDesc: '짙은 초록빛 비늘을 가진 동물이에요' },
+          { emoji: '🥦', exName: '브로콜리', exDesc: '진초록 빛깔의 채소예요' },
+        ];
+        else if (pale) candidates = [
+          { emoji: '🥝', exName: '키위',     exDesc: '연두빛 속살을 가진 새콤한 과일이에요' },
+          { emoji: '🍀', exName: '클로버',   exDesc: '연초록 잎이 귀여운 식물이에요' },
+          { emoji: '🦎', exName: '도마뱀',   exDesc: '연초록 몸통을 가진 파충류예요' },
+        ];
+        else candidates = [
+          { emoji: '🐢', exName: '거북이',   exDesc: '초록빛 등딱지를 가진 동물이에요' },
+          { emoji: '🍃', exName: '나뭇잎',   exDesc: '싱그러운 초록빛 잎이에요' },
+          { emoji: '🐸', exName: '개구리',   exDesc: '초록빛 피부를 가진 동물이에요' },
+          { emoji: '🌵', exName: '선인장',   exDesc: '사막에서 자라는 초록빛 식물이에요' },
+        ];
+      } else if (h < 195) {
+        base = '청록'; desc = '청록 계열이에요';
+        if (dark) candidates = [
+          { emoji: '🌊', exName: '깊은 바다', exDesc: '짙고 푸른 바닷빛이에요' },
+          { emoji: '🐉', exName: '청룡',     exDesc: '청록빛 비늘을 가진 전설의 용이에요' },
+          { emoji: '🧊', exName: '빙하',     exDesc: '깊고 진한 청록빛 얼음이에요' },
+        ];
+        else candidates = [
+          { emoji: '🦚', exName: '공작새',   exDesc: '화려한 청록빛 깃털을 가진 새예요' },
+          { emoji: '🐠', exName: '열대어',   exDesc: '청록빛 바다를 헤엄치는 물고기예요' },
+          { emoji: '🌀', exName: '파도',     exDesc: '청록빛으로 출렁이는 바다 파도예요' },
+        ];
+      } else if (h < 255) {
+        base = '파랑'; desc = '파란 계열이에요';
+        if (dark) candidates = [
+          { emoji: '🌌', exName: '밤하늘',   exDesc: '별이 빛나는 깊고 짙은 밤하늘이에요' },
+          { emoji: '🐋', exName: '고래',     exDesc: '짙은 파란 바다를 헤엄치는 동물이에요' },
+          { emoji: '💎', exName: '사파이어', exDesc: '짙고 깊은 파란빛의 보석이에요' },
+        ];
+        else if (pale) candidates = [
+          { emoji: '🐬', exName: '돌고래',   exDesc: '하늘빛 바다에서 노는 돌고래예요' },
+          { emoji: '🧊', exName: '얼음',     exDesc: '연한 파란빛이 도는 투명한 얼음이에요' },
+          { emoji: '🏔️', exName: '하늘',    exDesc: '맑고 깨끗한 하늘빛이에요' },
+        ];
+        else candidates = [
+          { emoji: '🫐', exName: '블루베리', exDesc: '파란빛이 도는 작은 열매예요' },
+          { emoji: '🦋', exName: '파란 나비', exDesc: '파란 날개를 가진 아름다운 나비예요' },
+          { emoji: '🌀', exName: '파도',     exDesc: '파랗게 출렁이는 바다예요' },
+          { emoji: '🫏', exName: '청새치',   exDesc: '파란빛 몸통을 가진 바닷물고기예요' },
+        ];
+      } else if (h < 290) {
+        base = '보라'; desc = '보라 계열이에요';
+        if (dark) candidates = [
+          { emoji: '🍆', exName: '가지',     exDesc: '짙은 보랏빛 채소예요' },
+          { emoji: '🔮', exName: '수정구슬', exDesc: '보랏빛이 감도는 신비로운 구슬이에요' },
+          { emoji: '🦑', exName: '오징어',   exDesc: '짙은 보랏빛을 띠는 바다 동물이에요' },
+        ];
+        else if (pale) candidates = [
+          { emoji: '💐', exName: '라벤더',   exDesc: '연보랏빛 꽃향기가 나는 꽃이에요' },
+          { emoji: '🌸', exName: '등나무꽃', exDesc: '연보라빛으로 주렁주렁 피는 꽃이에요' },
+          { emoji: '🦄', exName: '유니콘',   exDesc: '연보랏빛이 감도는 전설의 동물이에요' },
+        ];
+        else candidates = [
+          { emoji: '🍇', exName: '포도',     exDesc: '보랏빛 알갱이가 송이송이 달린 과일이에요' },
+          { emoji: '🦜', exName: '보라 앵무', exDesc: '보랏빛 깃털을 가진 앵무새예요' },
+          { emoji: '🌂', exName: '보라 우산', exDesc: '보랏빛 우산이에요' },
+        ];
+      } else {
+        base = '분홍'; desc = '분홍 계열이에요';
+        if (dark) candidates = [
+          { emoji: '🌹', exName: '장미',     exDesc: '짙은 분홍빛 꽃잎을 가진 꽃이에요' },
+          { emoji: '🦩', exName: '홍학',     exDesc: '진분홍빛 깃털을 가진 새예요' },
+          { emoji: '🍓', exName: '딸기',     exDesc: '진한 분홍빛이 도는 달콤한 과일이에요' },
+        ];
+        else candidates = [
+          { emoji: '🌸', exName: '벚꽃',     exDesc: '봄에 피는 연분홍빛 꽃이에요' },
+          { emoji: '🐷', exName: '돼지',     exDesc: '분홍빛 피부를 가진 귀여운 동물이에요' },
+          { emoji: '🌷', exName: '튤립',     exDesc: '분홍빛 꽃잎을 가진 봄꽃이에요' },
+          { emoji: '🩰', exName: '발레 슈즈', exDesc: '분홍빛의 우아한 발레 신발이에요' },
+        ];
+      }
+
+      const prefix = dark ? '어두운 ' : pale ? '연한 ' : '';
+      const ex = pick(candidates);
+      return { name: prefix + base, desc, ...ex };
+    }
+
+    function updateResult() {
+      const active = selected.filter(v => v !== null).map(ci => COLORS[ci]);
+      const resultCircle  = document.getElementById('resultCircle');
+      const resultName    = document.getElementById('resultName');
+      const resultDesc    = document.getElementById('resultDesc');
+      const resultExample = document.getElementById('resultExample');
+
+      if (active.length < 2) {
+        resultCircle.style.background = '#e8e8e8';
+        resultName.textContent = active.length === 0 ? '색을 2개 이상 골라보세요' : '색을 하나 더 골라보세요';
+        resultDesc.textContent = '';
+        resultExample.style.display = 'none';
+        return;
+      }
+
+      const avg = {
+        r: active.reduce((s, c) => s + c.r, 0) / active.length,
+        g: active.reduce((s, c) => s + c.g, 0) / active.length,
+        b: active.reduce((s, c) => s + c.b, 0) / active.length,
+      };
+
+      const hex = rgbToHex(avg.r, avg.g, avg.b);
+      const { name, desc, emoji, exName, exDesc } = getColorInfo(avg.r, avg.g, avg.b);
+
+      resultCircle.style.background = hex;
+      resultName.textContent = name;
+      resultDesc.textContent = desc;
+      document.getElementById('exampleEmoji').textContent = emoji;
+      document.getElementById('exampleName').textContent = exName;
+      document.getElementById('exampleDesc').textContent = exDesc;
+      resultExample.style.display = 'flex';
+    }
+
+    function resetAll() {
+      for (let i = 0; i < 3; i++) {
+        const prev = selected[i];
+        selected[i] = null;
+        updateSlot(i);
+        if (prev !== null) updateSwatch(prev);
+      }
+      updateResult();
+    }
+
+    updateResult();
+  </script>
+
+</body>
+</html>

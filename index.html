@@ -180,7 +180,7 @@
 <body>
 
   <h1>🎨 색깔 믹서</h1>
-  <p class="subtitle">색을 골라보세요 — 2~3개를 섞으면 어떤 색이 될까요?</p>
+  <p class="subtitle">색을 2개 골라보세요 — 섞으면 어떤 색이 될까요?</p>
 
   <div class="slots">
     <div class="slot">
@@ -196,13 +196,6 @@
       <span class="slot-name" id="name1">?</span>
       <button class="reset-btn" onclick="resetSlot(1)">초기화</button>
     </div>
-    <div class="plus">+</div>
-    <div class="slot">
-      <span class="slot-label">색상 3</span>
-      <div class="slot-circle" id="circle2"></div>
-      <span class="slot-name" id="name2">?</span>
-      <button class="reset-btn" onclick="resetSlot(2)">초기화</button>
-    </div>
   </div>
 
   <div class="palette-row" id="palette"></div>
@@ -212,7 +205,7 @@
   <div class="result-section">
     <div class="result-circle" id="resultCircle"></div>
     <div class="result-info">
-      <div class="result-name" id="resultName">색을 2개 이상 골라보세요</div>
+      <div class="result-name" id="resultName">색을 2개 골라보세요</div>
       <div class="result-desc" id="resultDesc"></div>
       <div class="result-example" id="resultExample" style="display:none;">
         <span class="example-emoji" id="exampleEmoji"></span>
@@ -260,7 +253,7 @@
       { name: '검정',   hex: '#1C1C1E', r: 28,  g: 28,  b: 30  },
     ];
 
-    const selected = [null, null, null];
+    const selected = [null, null];
 
     const palette = document.getElementById('palette');
     COLORS.forEach((c, ci) => {
@@ -280,6 +273,22 @@
       palette.appendChild(wrap);
     });
 
+    function speakThen(first, second) {
+      window.speechSynthesis.cancel();
+      const u1 = new SpeechSynthesisUtterance(first);
+      u1.lang = 'ko-KR';
+      u1.rate = 1.0;
+      if (second) {
+        u1.onend = () => {
+          const u2 = new SpeechSynthesisUtterance(second);
+          u2.lang = 'ko-KR';
+          u2.rate = 1.0;
+          window.speechSynthesis.speak(u2);
+        };
+      }
+      window.speechSynthesis.speak(u1);
+    }
+
     function pickColor(colorIdx) {
       const free = selected.indexOf(null);
       if (free === -1) return;
@@ -287,7 +296,12 @@
       selected[free] = colorIdx;
       updateSlot(free);
       updateSwatch(colorIdx);
-      updateResult();
+      if (free === 0) {
+        speakThen(COLORS[colorIdx].name);
+        updateResult();
+      } else {
+        updateResult(true);
+      }
     }
 
     function resetSlot(slotIdx) {
@@ -521,7 +535,7 @@
       return { name: prefix + base, desc, ...ex };
     }
 
-    function updateResult() {
+    function updateResult(speakResult = false) {
       const active = selected.filter(v => v !== null).map(ci => COLORS[ci]);
       const resultCircle  = document.getElementById('resultCircle');
       const resultName    = document.getElementById('resultName');
@@ -530,9 +544,10 @@
 
       if (active.length < 2) {
         resultCircle.style.background = '#e8e8e8';
-        resultName.textContent = active.length === 0 ? '색을 2개 이상 골라보세요' : '색을 하나 더 골라보세요';
+        resultName.textContent = active.length === 0 ? '색을 2개 골라보세요' : '색을 하나 더 골라보세요';
         resultDesc.textContent = '';
         resultExample.style.display = 'none';
+        if (speakResult) speakThen(COLORS[selected.find(v => v !== null)].name);
         return;
       }
 
@@ -552,10 +567,15 @@
       document.getElementById('exampleName').textContent = exName;
       document.getElementById('exampleDesc').textContent = exDesc;
       resultExample.style.display = 'flex';
+
+      if (speakResult) {
+        const secondColorName = COLORS[selected[1]].name;
+        speakThen(secondColorName, `두 색깔을 합친 결과는 ${name}이에요. ${exName}처럼 ${exDesc}`);
+      }
     }
 
     function resetAll() {
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 2; i++) {
         const prev = selected[i];
         selected[i] = null;
         updateSlot(i);
